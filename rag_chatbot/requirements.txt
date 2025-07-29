@@ -1,0 +1,11 @@
+PyMuPDF
+sentence-transformers
+#faiss-cpu
+langchain
+tiktoken
+openai  # Optional: if using for generation
+chromadb
+argparse
+transformers
+
+
