@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Legal QA Chatbot</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <h1>🌾 Legal QA Chatbot</h1>
+
+    <form method="post" action="/ask">
+        <label for="country">Select Country:</label>
+        <select name="country" id="country">
+            <option value="albania">Albania</option>
+            <option value="azerbaijan">Azerbaijan</option>
+            <option value="bulgaria">Bulgaria</option>
+            <option value="chile">Chile</option>
+            <option value="iceland">Ice Land</option>
+            <option value="oman">Oman</option>
+            <option value="paraguay">Paraguay</option>
+            <option value="poland">Poland</option>
+            <option value="portugal">Portugal</option>
+            <option value="russia">Russia</option>
+            <option value="slovakia">Slovakia</option>
+            <!-- Add more -->
+        </select><br><br>
+
+        <label for="question">Ask a Question:</label><br>
+        <input type="text" name="question" id="question" size="80" required><br><br>
+
+        <button type="submit">Ask</button>
+    </form>
+
+    {% if answer %}
+        <hr>
+        <h3>Question:</h3>
+        <p><strong>{{ question }}</strong></p>
+
+        <h3>Answer:</h3>
+        <p>{{ answer }}</p>
+    {% endif %}
+</body>
+</html>
