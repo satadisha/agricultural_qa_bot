@@ -7,5 +7,7 @@ openai  # Optional: if using for generation
 chromadb
 argparse
 transformers
+fastapi
+python-multipart
 
 
