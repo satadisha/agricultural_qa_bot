@@ -2,26 +2,65 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Legal QA Chatbot</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Seedbot: a free Q&A tool that helps farmers navigate agricultural laws and regulations." />
+    <title>Seedbot</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <h1>🌾 Legal QA Chatbot</h1>
+    
+    <h1>Seedbot: Q&A Tool for Farmers</h1>
+    <p class="seedbot-intro">Welcome to the Q&A bot for agricultural relations </p>
+
+    <p class="seedbot-intro">In collaboration with <a href="https://www.agrowingculture.org/">A Growing Culture</a>, a non-profit organization focused on advancing global food sovereignty, we used the International Union for the Protection of New Varieties of Plants' dataset of agricultural laws to build this Q&A chatbot. Our goal is to empower farmers with easy-to-understand access to laws and regulations related to agriculture. Built using open-source large language models (LLMs), ensuring the platform remains completely free for users. 
+    </p>
+
+    <hr>
 
     <form method="post" action="/ask">
-        <label for="country">Select Country:</label>
+        <label for="country">Select a Country:</label>
         <select name="country" id="country">
             <option value="albania">Albania</option>
             <option value="azerbaijan">Azerbaijan</option>
+            <option value="belarus">Belarus</option>
+            <option value="bosnia">Bosnia</option>
+            <option value="brazil">Brazil</option>
             <option value="bulgaria">Bulgaria</option>
             <option value="chile">Chile</option>
-            <option value="iceland">Ice Land</option>
+            <option value="china">China</option>
+            <option value="colombia">Colombia</option>
+            <option value="costa rica">Costa Rica</option>
+            <option value="croatia">Croatia</option>
+            <option value="denmark">Denmark</option>
+            <option value="egypt">Egypt</option>
+            <option value="france">France</option>
+            <option value="georgia">Georgia</option>
+            <option value="germany">Germany</option>
+            <option value="hungary">Hungary</option>
+            <option value="iceland">Iceland</option>
+            <option value="italy">Italy</option>
+            <option value="japan">Japan</option>
+            <option value="jordan">Jordan</option>
+            <option value="kyrgyzstan">Kyrgyzstan</option>
+            <option value="lithuania">Lithuania</option>
+            <option value="mexico">Mexico</option>
+            <option value="moldova">Moldova, Republic of</option>
+            <option value="montenegro">Montenegro</option>
+            <option value="nicaragua">Nicaragua</option>
             <option value="oman">Oman</option>
+            <option value="panama">Panama</option>
             <option value="paraguay">Paraguay</option>
+            <option value="peru">Peru</option>
             <option value="poland">Poland</option>
             <option value="portugal">Portugal</option>
-            <option value="russia">Russia</option>
+            <option value="romania">Romania</option>
+            <option value="russian federation">Russian Federation</option>
+            <option value="serbia">Serbia</option>
             <option value="slovakia">Slovakia</option>
+            <option value="slovenia">Slovenia</option>
+            <option value="tunisia">Tunisia</option>
+            <option value="uruguay">Uruguay</option>
+            <option value="uzbekistan">Uzbekistan</option>
             <!-- Add more -->
         </select><br><br>
 
@@ -39,5 +78,13 @@
         <h3>Answer:</h3>
         <p>{{ answer }}</p>
     {% endif %}
+    <hr>
+    <p class="seedbot-footer">
+        Data source: <a href="https://www.upov.int/portal/index.html.en">UPOV</a></p>
+
+    <p class="seedbot-footer">Amari Gray (Morehouse College), Jibek Gupta (Howard University), Allen Jones (Florida A&M University), Gerardo Rojas (California State University, Fresno), Peter Ronemous (Prairie View A&M University)</p>
+
+    <p class="seedbot-footer">We would like to thank the University of Chicago's Data Science for Social Impact Program for the opportunity to work on this project, as well as our mentors, Dr. Satadisha Saha Bhowmick, Summer Han, and Dr. Kriti Sehgal.
+    </p>
 </body>
 </html>

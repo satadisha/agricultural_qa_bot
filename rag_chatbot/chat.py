@@ -34,7 +34,7 @@ READER_LLM = pipeline(
 
 
 
-def build_prompt(context, question, chat_history):
+def build_prompt(context, question):  # chat_history - holding for now
     prompt_parts = [
         {
             "role": "system",
@@ -48,9 +48,9 @@ def build_prompt(context, question, chat_history):
         }
     ]
 
-    for turn in chat_history:
-        prompt_parts.append({"role": "user", "content": turn["user"]})
-        prompt_parts.append({"role": "assistant", "content": turn["bot"]})
+    # for turn in chat_history:
+    #     prompt_parts.append({"role": "user", "content": turn["user"]})
+    #     prompt_parts.append({"role": "assistant", "content": turn["bot"]})
 
     prompt_parts.append({
         "role": "user",
@@ -99,10 +99,10 @@ def chat_loop(country, chroma_path):
         prompt = build_prompt(context=context, question=user_query,chat_history=chat_history)
         answer = generate_response(prompt)
 
-        chat_history.append({
-            "user": user_query,
-            "bot" :answer,
-        })
+        # chat_history.append({
+        #     "user": user_query,
+        #     "bot" :answer,
+        # })
 
         print("\n Answer:\n")
         print(answer)
