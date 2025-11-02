@@ -1,4 +1,4 @@
-# SeedBot.Farm — RAG Chatbot for Seed Laws
+# SeedBot — RAG Chatbot for Seed Laws
 
 > A lightweight Retrieval-Augmented Generation (RAG) chatbot that answers questions about seed laws and related regulations from PDFs — with grounded citations.
 
@@ -7,7 +7,7 @@
 [![Status](https://img.shields.io/badge/status-experimental-lightgrey)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](#license)
 
-SeedBot.Farm ingests legal PDFs, converts them to structured text, builds embeddings, and retrieves the most relevant passages for a user’s question. It then generates concise answers **with citations** to the original source snippets. The repository includes a local CLI for quick Q&A and a **FastAPI** service for programmatic use.
+[![SeedBot](seedbot.farm)](#seedbot.farm) ingests legal PDFs, converts them to structured text, builds embeddings, and retrieves the most relevant passages for a user’s question. It then generates concise answers **with citations** to the original source snippets. The repository includes a local CLI for quick Q&A and a **FastAPI** service for programmatic use.
 
 ---
 
