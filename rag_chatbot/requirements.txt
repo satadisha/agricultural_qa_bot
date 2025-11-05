@@ -1,13 +1,14 @@
-PyMuPDF
-sentence-transformers
-#faiss-cpu
-langchain
-tiktoken
-openai  # Optional: if using for generation
-chromadb
-argparse
-transformers
-fastapi
-python-multipart
+PyMuPDF                # used to extract text from PDF files
+sentence-transformers   # for creating embeddings from text
+#faiss-cpu              # optional: local vector search index (commented out if not used)
+langchain               # framework for retrieval-augmented generation (RAG) workflows
+tiktoken                # tokenizer used for counting tokens
+openai                  # optional: for using OpenAI models for text generation
+chromadb                # local vector database for storing and retrieving embeddings
+argparse                # handles command-line arguments
+transformers            # provides pretrained models and tokenizers
+fastapi                 # for creating API endpoints if needed
+python-multipart        # handles file uploads in FastAPI apps
+
 
 
