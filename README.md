@@ -11,7 +11,7 @@
 ---
 
 ## Features
-- **End-to-end pipeline:** Extract → Section Splitter → Chunking → Embed Store → Get Best Chunk.
+- **End-to-end pipeline:** Extract → Section Splitter → Chunking → Embed Store → Process PDF → Get Best Chunk.
 - **Embeddings:** `sentence-transformers/all-MiniLM-L6-v2`.
 - **Vector Store:** FAISS or SQLite.
 - **Simple CLI** for local Q&A.
@@ -46,5 +46,12 @@ python chunking.py --in processed/docs_sections --out processed/docs_chunks
 # (4) Embed Store → FAISS index
 python embed_store.py --in processed/docs_chunks --index processed/faiss_index
 
-# (5) Get Best Chunk → retrieve answer
+# (5) Process PDF → full pipeline (optional combined command)
+# For a single PDF
+python process_pdf.py --input_file data/albania.pdf --output_dir processed/jsonl --chroma_dir processed/chroma_db
+
+# For all PDFs in a folder
+python process_pdf.py --input_dir data/pdfs --output_dir processed/jsonl --chroma_dir processed/chroma_db
+
+# (6) Get Best Chunk → retrieve answer
 python best_chunk.py --index processed/faiss_index --query "What must appear on a seed label?"
