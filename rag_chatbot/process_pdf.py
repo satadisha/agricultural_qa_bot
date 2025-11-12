@@ -20,18 +20,43 @@ MAX_TOKENS = 512  # maximum token limit per chunk
 
 
 def count_tokens(text: str) -> int:
-    # count the number of tokens in text
+    """
+    Count the number of tokens in a given text.
+
+    Args:
+        text (str): The text whose tokens are to be counted.
+
+    Returns:
+        int: The number of tokens in the text.
+    """
     return len(enc.encode(text))
 
 
 def truncate_text(text: str, max_tokens: int = MAX_TOKENS) -> str:
-    # shorten text if it exceeds token limit
+    """
+    Truncate text to ensure it does not exceed a specified token limit.
+
+    Args:
+        text (str): Input text string.
+        max_tokens (int): Maximum allowed tokens per chunk. Defaults to MAX_TOKENS.
+
+    Returns:
+        str: Truncated version of the text.
+    """
     input_ids = tokenizer.encode(text, add_special_tokens=False)[:max_tokens]
     return tokenizer.decode(input_ids, skip_special_tokens=True)
 
 
 def detect_language(text: str) -> str:
-    # detect the language of a given text
+    """
+    Detect the language of a given text.
+
+    Args:
+        text (str): Text sample for language detection.
+
+    Returns:
+        str: Detected language code (e.g., 'en', 'fr', 'ko'). Returns 'unknown' on failure.
+    """
     try:
         return detect(text)
     except:
@@ -39,11 +64,36 @@ def detect_language(text: str) -> str:
 
 
 def fingerprint(text: str) -> str:
-    # create a short unique fingerprint from the first 50 words
+    """
+    Generate a short normalized fingerprint for deduplication.
+
+    This helps identify and skip duplicate text chunks during processing.
+
+    Args:
+        text (str): Input text to fingerprint.
+
+    Returns:
+        str: A normalized string of the first 50 words.
+    """
     return " ".join(text.lower().split()[:50])  # Normalize and take first 50 words
 
 
 def process_single_pdf(pdf_path: Path, jsonl_dir: Path, chroma_path: Path):
+     """
+    Process a single PDF file: extract text, split into sections, chunk, embed, and store results.
+
+    Args:
+        pdf_path (Path): Path to the PDF file to process.
+        jsonl_dir (Path): Output directory for storing JSONL chunk files.
+        chroma_path (Path): Directory for storing ChromaDB embeddings.
+
+    Workflow:
+        1. Extract text from PDF.
+        2. Split text into logical sections.
+        3. Chunk each section into token-limited pieces.
+        4. Generate sentence embeddings.
+        5. Save results as JSONL and insert into ChromaDB.
+    """
     print(f"\n📄 Processing: {pdf_path.name}")
 
     # extract text from the PDF file
@@ -130,7 +180,20 @@ def process_single_pdf(pdf_path: Path, jsonl_dir: Path, chroma_path: Path):
 
 
 def main():
-    # setup command-line argument parser
+    """
+    Main entry point for command-line execution.
+
+    Handles user arguments for either processing a single PDF or an entire directory of PDFs.
+
+    Command-line Arguments:
+        --input_file (str): Path to a single PDF file to process.
+        --input_dir (str): Directory containing multiple PDF files to process.
+        --output_dir (str): Directory to save JSONL output files (default: 'processed/jsonl').
+        --chroma_dir (str): Directory to store ChromaDB embeddings (default: 'processed/chroma_db').
+
+    Example:
+        python process_pdfs.py --input_dir ./pdfs --output_dir ./processed/jsonl
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--input_file", type=str, help="Path to a single PDF file")
     parser.add_argument("--input_dir", type=str, help="Folder containing multiple PDF files")
