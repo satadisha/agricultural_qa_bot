@@ -19,16 +19,53 @@ IMPORTANT_KEYWORDS = [  # key words to prioritize in scoring
 ]
 
 def keyword_overlap_score(text: str, query: str) -> int:
-    # count how many important keywords appear in both the text and the query
+     """
+    Count overlap of important keywords between a text chunk and the query.
+
+    Args:
+        text (str): The candidate document text.
+        query (str): The user’s query text.
+
+    Returns:
+        int: Number of IMPORTANT_KEYWORDS present in both `text` and `query`.
+    """
     return sum(1 for kw in IMPORTANT_KEYWORDS if kw.lower() in text.lower() and kw.lower() in query.lower())
 
 def extract_article_number_from_query(query: str) -> str:
-    # extract an article number like "Article 5" from the query
+    """
+    Extract a normalized article reference (e.g., 'article 5') from the query.
+
+    Args:
+        query (str): Query text that may contain an article reference like 'Article 5'.
+
+    Returns:
+        str | None: A lowercase string 'article N' if found, otherwise None.
+    """
     match = re.search(r'\barticle\s+(\d+)', query.lower())
     return f"article {match.group(1)}" if match else None
 
 def rerank_chunks(results, query_embedding, query_text):
-    # rerank retrieved chunks using cosine similarity and keyword/article boosts
+    """
+    Rerank retrieved chunks by cosine similarity plus heuristic boosts.
+
+    The final score is:
+        final_score = cosine_similarity(query_vec, doc_vec) + bonuses
+    where bonuses include:
+        - keyword overlap (scaled by KEYWORD_BONUS_WEIGHT)
+        - exact match of 'article N' in the chunk's sub_heading (EXACT_ARTICLE_MATCH_BONUS)
+
+    Args:
+        results (dict): Output from `collection.query(...)` including keys
+            'documents', 'metadatas', and 'embeddings'. Each is a list with
+            results for the (single) query at index 0.
+        query_embedding (np.ndarray): Embedding vector for the query (1D).
+        query_text (str): Raw query text (for keywords/article extraction).
+
+    Returns:
+        list[tuple[float, float, str, dict]]: A list of tuples:
+            (final_score, base_cosine, document_text, metadata)
+        sorted from best to worst by `final_score`.
+    """
     documents = results["documents"][0]
     embeddings = np.array(results["embeddings"][0])
     metadatas = results["metadatas"][0]
@@ -58,7 +95,26 @@ def rerank_chunks(results, query_embedding, query_text):
     return reranked
 
 def get_top_chunks(country, query, chroma_path, top_k=10):
-    # main function to search ChromaDB and get the best chunks for a query
+    """
+    Query ChromaDB for a given country + query, rerank, and return top-K chunks.
+
+    This function:
+        1) Initializes a PersistentClient and sentence-transformer embedder.
+        2) Queries the 'regulations' collection filtered by country.
+        3) Reranks results using cosine similarity + heuristic boosts.
+        4) Returns the top `top_k` tuples.
+
+    Args:
+        country (str): Country code/name stored in metadata (e.g., 'korea').
+        query (str): User’s natural-language query.
+        chroma_path (str | None): Filesystem path to the ChromaDB directory.
+        top_k (int): Number of top chunks to return after reranking. Default is 10.
+
+    Returns:
+        list[tuple[float, float, str, dict]]: Top-K tuples of the form
+            (final_score, base_cosine, document_text, metadata).
+        If no results are found, returns an empty list.
+    """
     print(f"\n🔍 Running multilingual chunk search for country: '{country}', query: '{query}'")
 
     client = PersistentClient(path=chroma_path)
