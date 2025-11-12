@@ -7,7 +7,15 @@ from nltk.tokenize import sent_tokenize
 tokenizer = AutoTokenizer.from_pretrained("intfloat/multilingual-e5-large")  # load tokenizer
 
 def count_tokens(text: str) -> int:
-    # count the number of tokens in a given text
+    """
+    Count the number of tokens in a given text using the loaded tokenizer.
+
+    Args:
+        text (str): The input text string to be tokenized.
+
+    Returns:
+        int: The number of tokens in the text.
+    """
     return len(tokenizer.encode(text, add_special_tokens=False))
 
 def chunk_text(
@@ -17,7 +25,30 @@ def chunk_text(
     max_chars: int = 1000,
     sentence_overlap: int = 2
 ) -> List[Dict]:
-    # calculate how many tokens can be used for text after counting the heading
+    """
+    Split text into token-limited, overlapping chunks.
+
+    Each chunk attempts to stay within both token and character limits.
+    Sentence boundaries are preserved where possible, and an adjustable
+    number of overlapping sentences are retained between adjacent chunks
+    to maintain context continuity.
+
+    Args:
+        section_text (str): The text body to be split into chunks.
+        section_heading (str, optional): A heading or context prefix whose
+            tokens count toward the token limit. Defaults to "".
+        max_tokens (int, optional): Maximum token count per chunk.
+            Defaults to 512.
+        max_chars (int, optional): Maximum character count per chunk.
+            Defaults to 1000.
+        sentence_overlap (int, optional): Number of overlapping sentences
+            to keep between chunks. Defaults to 2.
+
+    Returns:
+        List[Dict]: A list of dictionaries, each with keys:
+            - "section_heading": heading applied to that section
+            - "text": the chunked text body
+    """
     heading_tokens = count_tokens(section_heading)
     token_budget = max_tokens - heading_tokens
 
