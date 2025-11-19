@@ -1,19 +1,37 @@
+"""
+PDF → Section → Chunk → Embedding → Chroma Pipeline
+
+This module processes a PDF file by:
+1. Extracting raw text.
+2. Splitting it into logical sections.
+3. Chunking each section into small token-limited pieces.
+4. Embedding each chunk using SentenceTransformer.
+5. Storing chunks + metadata + embeddings into a Chroma vector database.
+6. Saving a JSONL file containing all processed chunks.
+
+It also provides a helper function (`store_to_chroma`) for inserting
+already-processed entries into ChromaDB.
+
+Configuration such as embedding model name, tokenizer, and directories
+is imported from `src.config`.
+"""
+
 import os
 import json
 from pathlib import Path
 from hashlib import sha256
 
-from src.extract import extract_text_from_pdf  # extract text from PDFs
-from src.chunking import chunk_text            # split text into chunks
-from src.section_splitter import split_into_section  # split text into logical sections
-from src.config import EMBEDDING_MODEL_NAME, JSONL_OUTPUT_DIR  # model and output settings
+from src.extract import extract_text_from_pdf
+from src.chunking import chunk_text
+from src.section_splitter import split_into_section
+from src.config import EMBEDDING_MODEL_NAME, JSONL_OUTPUT_DIR
 
-from chromadb import PersistentClient  # local vector database
-from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction  # embedding function
+from chromadb import PersistentClient
+from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 
 from transformers import AutoTokenizer
 import tiktoken
-from langdetect import detect  # detect language of the text
+from langdetect import detect
 
 # Initialize tokenizer and encoder
 enc = tiktoken.get_encoding("cl100k_base")  # for token counting
@@ -22,18 +40,43 @@ MAX_TOKENS = 512
 
 
 def count_tokens(text: str) -> int:
-    # count how many tokens are in a piece of text
+    """
+    Count tokens in a string using the tiktoken encoder.
+
+    Args:
+        text (str): Input text.
+
+    Returns:
+        int: Number of tokens.
+    """
     return len(enc.encode(text))
 
 
 def truncate_text(text: str, max_tokens: int = MAX_TOKENS) -> str:
-    # shorten text so it does not exceed max_tokens
+    """
+    Truncate text so it does not exceed max_tokens.
+
+    Args:
+        text (str): Input text.
+        max_tokens (int): Maximum allowed tokens.
+
+    Returns:
+        str: Text truncated to max_tokens.
+    """
     input_ids = tokenizer.encode(text, add_special_tokens=False)[:max_tokens]
     return tokenizer.decode(input_ids, skip_special_tokens=True)
 
 
 def detect_language(text: str) -> str:
-    # detect language or return "unknown" if it fails
+    """
+    Detect the language of a text block.
+
+    Args:
+        text (str): Input text.
+
+    Returns:
+        str: Language code (ISO 639-1) or "unknown".
+    """
     try:
         return detect(text)
     except Exception:
@@ -41,7 +84,16 @@ def detect_language(text: str) -> str:
 
 
 def get_fingerprint(text: str, length: int = 50) -> str:
-    # create a unique hash for the first few words of the text
+    """
+    Create a stable hash fingerprint using the first `length` words of the text.
+
+    Args:
+        text (str): Chunk text.
+        length (int): Number of words to fingerprint.
+
+    Returns:
+        str: SHA256 hexadecimal digest.
+    """
     return sha256(" ".join(text.split()[:length]).encode()).hexdigest()
 
 
@@ -51,6 +103,29 @@ def process_pdf_to_chroma(
     collection_name: str = "regulations",
     jsonl_dir: Path = JSONL_OUTPUT_DIR
 ):
+    """
+    Process a PDF and store its chunk embeddings in ChromaDB + JSONL.
+
+    Workflow:
+    - Extract text from PDF.
+    - Split into hierarchical sections.
+    - Chunk each section to token-safe pieces.
+    - Detect metadata (country, language).
+    - Deduplicate using fingerprint hashes.
+    - Embed chunks with SentenceTransformer.
+    - Store (text, metadata, embedding) into Chroma.
+    - Save all chunks to a JSONL file.
+
+    Args:
+        pdf_path (Path): Path to the PDF file.
+        chroma_path (Path): Directory containing the persistent ChromaDB.
+        collection_name (str): Name of the Chroma collection.
+        jsonl_dir (Path): Directory to store JSONL chunk outputs.
+
+    Returns:
+        None
+    """
+
     # extract text from the PDF
     text = extract_text_from_pdf(pdf_path)
     if not text or not text.strip():
@@ -60,19 +135,19 @@ def process_pdf_to_chroma(
     # split text into structured sections
     sections = split_into_section(text)
 
-    # setup Chroma database for storage
+    # setup Chroma database
     client = PersistentClient(path=chroma_path)
     embedder = SentenceTransformerEmbeddingFunction(model_name=EMBEDDING_MODEL_NAME)
     collection = client.get_or_create_collection(name=collection_name, embedding_function=embedder)
 
-    # prepare JSONL output file
+    # prepare JSONL file
     jsonl_path = jsonl_dir / f"{pdf_path.stem}.jsonl"
     os.makedirs(jsonl_dir, exist_ok=True)
 
-    # extract metadata like country and language
+    # metadata extraction
     country = pdf_path.stem.split("_")[0].lower()
     language = detect_language(text)
-    seen_fingerprints = set()  # avoid duplicates
+    seen_fingerprints = set()
 
     with open(jsonl_path, "w", encoding="utf-8") as f_out:
         for sec_idx, section in enumerate(sections, 1):
@@ -80,25 +155,26 @@ def process_pdf_to_chroma(
             sub_heading_raw = section.get("sub_heading", [])
             sub_heading = ", ".join(sub_heading_raw) if isinstance(sub_heading_raw, list) else str(sub_heading_raw)
 
-            # split each section into smaller chunks
+            # break section into text chunks
             chunks = chunk_text(section["text"], section_heading=section_heading)
 
             for chunk_idx, chunk in enumerate(chunks, 1):
-                # combine section heading and text
-                raw_text = f"{section_heading}\n\n{chunk['text']}".strip() if section_heading else chunk['text']
+                raw_text = (
+                    f"{section_heading}\n\n{chunk['text']}".strip()
+                    if section_heading else chunk["text"]
+                )
                 full_text = truncate_text(raw_text)
 
-                # skip if this chunk is already processed
+                # dedupe
                 fingerprint = get_fingerprint(full_text)
                 if fingerprint in seen_fingerprints:
                     continue
                 seen_fingerprints.add(fingerprint)
 
-                # create embedding for the chunk
+                # embed
                 embedding = embedder([full_text])[0]
                 chunk_id = f"{country}{pdf_path.stem}-s{sec_idx}-c{chunk_idx}"
 
-                # build metadata for this chunk
                 metadata = {
                     "chunk_id": chunk_id,
                     "tokens": count_tokens(full_text),
@@ -109,7 +185,7 @@ def process_pdf_to_chroma(
                     "sub_heading": sub_heading
                 }
 
-                # remove any duplicate and store the new one
+                # refresh + store
                 collection.delete(ids=[chunk_id])
                 collection.add(
                     documents=[full_text],
@@ -118,7 +194,7 @@ def process_pdf_to_chroma(
                     ids=[chunk_id]
                 )
 
-                # save chunk to JSONL file
+                # write JSONL line
                 f_out.write(json.dumps({
                     "chunk_id": chunk_id,
                     "text": full_text,
@@ -126,14 +202,27 @@ def process_pdf_to_chroma(
                     "metadata": metadata
                 }, ensure_ascii=False) + "\n")
 
-    # print completion info
     print(f"✅ Processed {pdf_path.name}")
     print(f"📦 Stored in ChromaDB: {chroma_path}")
     print(f"📝 JSONL written to: {jsonl_path}")
 
 
 def store_to_chroma(entries, chroma_path, collection_name="regulations"):
-    # reopen Chroma and add pre-processed entries
+    """
+    Store preprocessed chunk entries into an existing Chroma collection.
+
+    Args:
+        entries (list[dict]): Each entry must contain:
+            - text (str)
+            - embedding (list[float])
+            - metadata (dict)
+        chroma_path (str or Path): Path to persistent Chroma directory.
+        collection_name (str): Name of collection receiving entries.
+
+    Returns:
+        None
+    """
+
     client = PersistentClient(path=chroma_path)
     embedder = SentenceTransformerEmbeddingFunction(model_name=EMBEDDING_MODEL_NAME)
     collection = client.get_or_create_collection(name=collection_name, embedding_function=embedder)
@@ -144,7 +233,7 @@ def store_to_chroma(entries, chroma_path, collection_name="regulations"):
         embedding = entry["embedding"]
         chunk_id = metadata["chunk_id"]
 
-        # remove old entry (if exists) and add new one
+        # overwrite existing chunk id
         collection.delete(ids=[chunk_id])
         collection.add(
             documents=[text],
@@ -152,3 +241,4 @@ def store_to_chroma(entries, chroma_path, collection_name="regulations"):
             embeddings=[embedding],
             ids=[chunk_id]
         )
+
