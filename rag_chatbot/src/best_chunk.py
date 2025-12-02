@@ -148,7 +148,7 @@ def get_top_chunks(country, query, chroma_path, top_k=10):
     )
 
     if not results.get("documents") or not results["documents"][0]:
-        print("⚠️ No documents found for this country.")
+        print(" No documents found for this country.")
         return []
 
     # Return top-K reranked results
