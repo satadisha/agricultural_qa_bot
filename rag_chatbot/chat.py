@@ -32,25 +32,20 @@ READER_LLM = pipeline(
 )
 
 
-
-
-def build_prompt(context, question):  # chat_history - holding for now
+def build_prompt(context, question):
+    """Build a chat-style prompt containing system instructions, context, and the user question."""
     prompt_parts = [
         {
             "role": "system",
             "content": (
                 "You are a helpful legal assistant. "
-                "Answer the user's question using only the information in the provided context. "
-                "Keep your answer clear, specific, and concise—no more than 5 sentences. "
-                "If the answer is not in the context, respond with: 'I do not know.' "
-                "Always reply in the same language as the question."
+                "Answer the user's question using only the provided context. "
+                "Keep answers clear and concise (max 5 sentences). "
+                "If the information is not in the context, say 'I do not know.' "
+                "Reply in the same language as the question."
             )
         }
     ]
-
-    # for turn in chat_history:
-    #     prompt_parts.append({"role": "user", "content": turn["user"]})
-    #     prompt_parts.append({"role": "assistant", "content": turn["bot"]})
 
     prompt_parts.append({
         "role": "user",
@@ -60,22 +55,23 @@ def build_prompt(context, question):  # chat_history - holding for now
     return tokenizer.apply_chat_template(prompt_parts, tokenize=False, add_generation_prompt=True)
 
 
-
 def generate_response(prompt):
-    start =  time.time()
+    """Generate a model response and log the response time."""
+    start = time.time()
     output = READER_LLM(prompt)
     end = time.time()
     response = output[0]["generated_text"].strip()
-    print(f"\n Response generated in {end - start:.2f} seconds.\n")
+    print(f"\nResponse generated in {end - start:.2f} seconds.\n")
     return response
 
 
 def chat_loop(country, chroma_path):
+    """Interactive chat loop for querying country-specific regulatory chunks."""
     print(f"Country context: {country}")
     chat_history = []
 
     while True:
-        user_query = input("\n Ask a question (or type 'exit' to quit):\n> ")
+        user_query = input("\nAsk a question (or type 'exit' to quit):\n> ")
         if user_query.lower() in ["exit", "quit"]:
             print("Exiting chat.")
             break
@@ -96,28 +92,22 @@ def chat_loop(country, chroma_path):
             continue
 
         context = "\n\n".join([text for (_, _, text, _) in top_chunks])
-        prompt = build_prompt(context=context, question=user_query,chat_history=chat_history)
+        prompt = build_prompt(context=context, question=user_query)
         answer = generate_response(prompt)
 
-        # chat_history.append({
-        #     "user": user_query,
-        #     "bot" :answer,
-        # })
-
-        print("\n Answer:\n")
+        print("\nAnswer:\n")
         print(answer)
+
 
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Chat with memory using {LLM_NAME}")
-    parser.add_argument("--country", type=str, required=True, help="Country to filter context")
-    parser.add_argument("--db_path", type=str, required=True, help="Path to Chroma DB")
+    parser = argparse.ArgumentParser(description="Chat interface using a local LLM and Chroma context retrieval.")
+    parser.add_argument("--country", type=str, required=True, help="Country to filter context.")
+    parser.add_argument("--db_path", type=str, required=True, help="Path to the Chroma DB directory.")
     args = parser.parse_args()
 
     chat_loop(country=args.country, chroma_path=args.db_path)
-
-
 
 # run
 # python chat.py --country albania --db_path processed/chroma_db
