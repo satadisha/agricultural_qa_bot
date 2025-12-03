@@ -1,57 +1,81 @@
-# SeedBot — RAG Chatbot for Seed Laws
+# Seedbot: Agricultural Law Q&A Chatbot
 
-> A lightweight Retrieval-Augmented Generation (RAG) chatbot that answers questions about seed laws and related regulations from PDFs — with grounded citations.
-
-[![Python](https://img.shields.io/badge/Python-3.9%2B-blue)](#)
-[![Status](https://img.shields.io/badge/status-experimental-lightgrey)](#)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](#license)
-
-**SeedBot** ingests legal PDFs, converts them to structured text, builds embeddings, and retrieves the most relevant passages for a user’s question. It generates concise answers **with citations** to the original text.
-
----
+A RAG-powered chatbot helping farmers navigate agricultural laws across 40+ countries. Built with open-source LLMs in collaboration with [A Growing Culture](https://www.agrowingculture.org/).
 
 ## Features
-- **End-to-end pipeline:** Extract → Section Splitter → Chunking → Embed Store → Process PDF → Get Best Chunk.
-- **Embeddings:** `sentence-transformers/all-MiniLM-L6-v2`.
-- **Vector Store:** FAISS or SQLite.
-- **Simple CLI** for local Q&A.
 
----
+- Multilingual support for queries and documents
+- Country-specific legal information from UPOV dataset
+- Semantic search with custom reranking
+- Web interface and CLI tools
+- Built with Phi-4 and multilingual-e5 models
 
 ## Quick Start
-```bash
-# 1) Clone & enter
-git clone https://github.com/<your-org>/<your-repo>.git
-cd <your-repo>
 
-# 2) Create environment & install dependencies
-python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
+```bash
+# Install dependencies
 pip install -r requirements.txt
 
-# 3) Add your PDFs
-mkdir -p data/pdfs
-unzip upov_docs.zip -d data/pdfs
+# Process documents
+python process_pdf.py --input_dir data/chile --chroma_dir processed/chroma_db
 
-# 4) Run files in order
+# Start web server
+uvicorn fastapi_app.main:app --reload
+```
 
-# (1) Extract PDFs → JSON
-python extract.py --in data/pdfs --out processed/docs_json
+Visit `http://127.0.0.1:8000` to use the chatbot.
 
-# (2) Section Splitter → structured sections
-python section_splitter.py --in processed/docs_json --out processed/docs_sections
+## Usage
 
-# (3) Chunking → text chunks
-python chunking.py --in processed/docs_sections --out processed/docs_chunks
+### Web Interface
+```bash
+uvicorn fastapi_app.main:app --reload
+```
 
-# (4) Embed Store → FAISS index
-python embed_store.py --in processed/docs_chunks --index processed/faiss_index
+### CLI Chat
+```bash
+python chat.py --country albania --db_path processed/chroma_db
+```
 
-# (5) Process PDF → full pipeline (optional combined command)
-# For a single PDF
-python process_pdf.py --input_file data/albania.pdf --output_dir processed/jsonl --chroma_dir processed/chroma_db
+### Single Query
+```bash
+python get_response.py --country paraguay --query "Your question here" --db_path processed/chroma_db
+```
 
-# For all PDFs in a folder
-python process_pdf.py --input_dir data/pdfs --output_dir processed/jsonl --chroma_dir processed/chroma_db
+## Configuration
 
-# (6) Get Best Chunk → retrieve answer
-python best_chunk.py --index processed/faiss_index --query "What must appear on a seed label?"
+Edit `src/config.py`:
+```python
+EMBEDDING_MODEL_NAME = "intfloat/multilingual-e5-large"
+LLM_NAME = "microsoft/Phi-4-mini-instruct"
+CHUNK_SIZE = 512
+```
+
+## Project Structure
+
+```
+rag_chatbot/
+├── data/              # Raw PDFs by country
+├── processed/         # JSONL and ChromaDB
+├── src/               # Core processing modules
+├── fastapi_app/       # Web application
+├── test/              # Test scripts
+└── *.py               # CLI tools
+```
+
+## How It Works
+
+1. **Retrieval**: Query embedded → ChromaDB search → Reranking with keyword/article bonuses
+2. **Generation**: Context + prompt → Phi-4 → Concise answer in same language
+
+## Team
+
+Built by students from Morehouse, Howard, Florida A&M, Cal State Fresno, and Prairie View A&M as part of UChicago's Data Science for Social Impact Program.
+
+**Mentors**: Dr. Satadisha Saha Bhowmick, Summer Han, Dr. Kriti Sehgal
+
+## Acknowledgments
+
+- [A Growing Culture](https://www.agrowingculture.org/)
+- [UPOV](https://www.upov.int/) for datasets
+- University of Chicago DSSI Program
