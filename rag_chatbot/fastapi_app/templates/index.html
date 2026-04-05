@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+
+-->
+<style>
+    #loading-indicator {
+        display: none;
+        margin-top: 20px;
+    }
+</style>
+<head>
+    <meta charset="UTF-8">
+    <title>Seedbot: Q&A Tool for Farmers</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<!--
+<header style = "background-color:maroon">
+    <a href = "https://datascience.uchicago.edu/outreach/data-science-for-social-impact-network/summer-experience/2025/">
+        <img src="/static/Reverse-University-Logo_1Color_White_RGB-980x341.png" alt = "University of Chicago Data Science Institute Logo" style="width:200px;height:66px;">
+    </a>
+</header>
+-->
+<h1 style="text-align:center;font-size:300%;max-width: 1200px">
+    Seedbot: Q&A Tool for Farmers
+</h1>
+<p style = "font-size:100%;padding:20px;max-width: 1200px;word-wrap: break-word">
+    
+    Welcome to the Q&A bot for agricultural relations.<br>
+    <br>
+        SeedBot was created in collaboration with <a href="https://www.agrowingculture.org/">A Growing Culture</a>, a non-profit organization focused on advancing global food sovereignty. 
+        We built the platform using Microsoft's open-source large language model, <code>phi-4</code>, and trained it on the International Union for the Protection of New Varieties of Plants' dataset of agricultural laws.
+    Our goal is to empower farmers with free and easy-to-understand access to laws and regulations related to agriculture.
+    <br>
+    <hr>
+</p> 
+<body style = "font-size:150%;max-width: 1200px">
+    <form id="qa-form">
+        <label for="country">Select a Country:</label>
+        <select name="country" id="country">
+            <option value="albania">Albania</option>
+            <option value="azerbaijan">Azerbaijan</option>
+            <option value="belarus">Belarus</option>
+            <option value="bosnia and herzegovina">Bosnia and Herzegovina</option>
+            <option value="brazil">Brazil</option>
+            <option value="bulgaria">Bulgaria</option>
+            <option value="chile">Chile</option>
+            <option value="china">China</option>
+            <option value="colombia">Colombia</option>
+            <option value="costa rica">Costa Rica</option>
+            <option value="croatia">Croatia</option>
+            <option value="denmark">Denmark</option>
+            <option value="egypt">Egypt</option>
+            <option value="france">France</option>
+            <option value="georgia">Georgia</option>
+            <option value="germany">Germany</option>
+            <option value="hungary">Hungary</option>
+            <option value="iceland">Iceland</option>
+            <option value="italy">Italy</option>
+            <option value="japan">Japan</option>
+            <option value="jordan">Jordan</option>
+            <option value="kyrgyzstan">Kyrgyzstan</option>
+            <option value="lithuania">Lithuania</option>
+            <option value="mexico">Mexico</option>
+            <option value="moldova">Moldova, Republic of</option>
+            <option value="montenegro">Montenegro</option>
+            <option value="nicaragua">Nicaragua</option>
+            <option value="oman">Oman</option>
+            <option value="panama">Panama</option>
+            <option value="paraguay">Paraguay</option>
+            <option value="peru">Peru</option>
+            <option value="poland">Poland</option>
+            <option value="portugal">Portugal</option>
+            <option value="romania">Romania</option>
+            <option value="russian federation">Russian Federation</option>
+            <option value="serbia">Serbia</option>
+            <option value="slovakia">Slovakia</option>
+            <option value="slovenia">Slovenia</option>
+            <option value="tunisia">Tunisia</option>
+            <option value="uruguay">Uruguay</option>
+            <option value="uzbekistan">Uzbekistan</option>
+        </select><br><br>
+        <label for="question">Ask a Question:</label><br>
+        <input type="text" name="question" id="question" size="80" required><br><br>
+        <button type="button" onclick="startQueue()">Ask</button>
+        
+        <div id="loading-indicator" style="display:none; margin-top:20px;">
+            <img src="/static/loading-7528_128.gif" alt="Loading..." width="32px" height="32px">
+            <p id="queue-status">Joining queue...</p>
+            <!--
+            <span id="status-text" style="font-size: 0.8em; margin-left: 10px;">Queueing...</span>
+            -->
+        </div>
+        
+    </form style = "font-size:150%">
+    <div id="answer-display" style="display:none;">
+        <hr>
+        <h3>Question:</h3>
+        <p><strong id="question-repeated"></strong></p>
+        <h3>Answer:</h3>
+        <p id="res-answer"></p>
+    </div>
+    <hr>
+</body>
+<p style = "font-size:100%;padding:20px">
+    
+    Data source: <a href="https://www.upov.int/portal/index.html.en">UPOV</a><br>
+    <br>
+    Team:<br>
+    Amari Gray (Morehouse College), Jibek Gupta (Howard University), Allen Jones (Florida A&M University), Gerardo Rojas (California State University, Fresno), Peter Ronemous (Prairie View A&M University)<br>
+    <br>
+    We would like to thank the <a href="https://datascience.uchicago.edu/outreach/data-science-for-social-impact-network/summer-experience/2025/">University of Chicago's Data Science for Social Impact Program</a> for the opportunity to work on this project, as well as our mentors, Dr. Satadisha Saha Bhowmick, Summer Han, and Dr. Kriti Sehgal. <br>
+    
+    
+    </p>
+    <script>
+        async function startQueue() {
+            //event.preventDefault();
+            const loadingDiv = document.getElementById('loading-indicator');
+            const statusText = document.getElementById('queue-status');
+            const answerDiv = document.getElementById('answer-display');
+            const answerText = document.getElementById('res-answer');
+            const repeat = document.getElementById('question-repeated');
+            const form = document.getElementById('qa-form');
+            
+            // Reset UI
+            loadingDiv.style.display = 'block';
+            answerDiv.style.display = 'none';
+            statusText.innerText = "Connecting to queue...";
+
+            try {
+                const formData = new FormData(form);
+                const response = await fetch('/ask', { method: 'POST', body: formData });
+                const { task_id } = await response.json();
+
+                // Check status every 2 seconds
+                const poll = setInterval(async () => {
+                    const res = await fetch(`/status/${task_id}`);
+                    const data = await res.json();
+
+                    if (data.status === "waiting") {
+                        statusText.innerText = `You are at position #${data.position} in the queue.`;
+                    } else if (data.status === "processing") {
+                        statusText.innerText = "Your question is first in the queue...  processing now...";
+                    } else if (data.status === "completed") {
+                        clearInterval(poll);
+                        loadingDiv.style.display = 'none';
+                        answerDiv.style.display = 'block';
+                        repeat.innerText = data.question;
+                        answerText.innerText = data.answer;
+
+                    }
+                }, 2000);
+            } catch(error){
+                console.error("Error:", error);
+            }
+        }
+        
+        /*
+        document.getElementById('qa-form').onsubmit = async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const statusText = document.getElementById('status-text');
+            const answerContainer = document.getElementById('answer-container');
+
+            loadingIndicator.style.display = 'block';
+            answerContainer.style.display = 'none';
+            statusText.innerText = "Joining queue...";
+
+            // 1. Submit the task
+            const response = await fetch('/ask', { method: 'POST', body: formData });
+            const { task_id } = await response.json();
+
+            // 2. Poll for status every 2 seconds
+            const poll = setInterval(async () => {
+                const statusRes = await fetch(`/status/${task_id}`);
+                const data = await statusRes.json();
+
+                if (data.status === "waiting") {
+                    statusText.innerText = `Waiting in queue... (Position: ${data.position})`;
+                } else if (data.status === "processing") {
+                    statusText.innerText = "Seedbot is writing your answer...";
+                } else if (data.status === "completed") {
+                    clearInterval(poll);
+                    loadingIndicator.style.display = 'none';
+                    answerContainer.style.display = 'block';
+                    document.getElementById('display-question').innerText = data.question;
+                    document.getElementById('display-answer').innerText = data.answer;
+                }
+            }, 2000);
+        };
+        */
+    </script>
+</html>
